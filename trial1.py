@@ -11,11 +11,13 @@ from PIL import ImageFont, ImageDraw, Image
 
 
 # load the image and resize it
-def AI(frame):
+def AI(frame,resize):
     #image = cv2.imread(frame)
     #image = cv2.resize(image, (800, 600))
-    image = cv2.resize(frame, (800, 600))
-
+    #image = cv2.resize(frame, (800, 600))
+    image = frame
+    if(resize):
+        image = cv2.resize(frame, (800, 600))
 
     # convert the input image to grayscale,
     # blur it, and detect the edges 
@@ -29,7 +31,7 @@ def AI(frame):
     # find the contours, sort them, and keep only the 5 largest ones
     contours, _ = cv2.findContours(edged, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     contours = sorted(contours, key = cv2.contourArea, reverse = True)[:5]
-
+    approx = []
     # loop over the contours
     for c in contours:
         # approximate each contour
@@ -37,7 +39,7 @@ def AI(frame):
         approx = cv2.approxPolyDP(c, 0.08 * peri, True)
         # if the contour has 4 points, we can say
         # that we have found our license plate
-        print(approx)
+        #print(approx)
         if len(approx) == 4:
             n_plate_cnt = approx
             break        
@@ -68,18 +70,18 @@ def AI(frame):
 
         fontpath = "arial.ttf" # <== download font
         font = ImageFont.truetype(fontpath, 32)
-        img_pil = Image.fromarray(image)
-        draw = ImageDraw.Draw(img_pil)
+        img_pil = Image.fromarray(image)#create an image object from a numpy array of pixel values.
+        draw = ImageDraw.Draw(img_pil)#create a drawing object that will be used to draw on the image.
         text = f"{detection[0][1]} {detection[0][2] * 100:.2f}%"
-        reshaped_text = arabic_reshaper.reshape(text)
-        bidi_text = get_display(reshaped_text) 
+        reshaped_text = arabic_reshaper.reshape(text)#reshape the text to be rendered in Arabic script.
+        bidi_text = get_display(reshaped_text) #applie the bi-directional algorithm to the text to ensure that it is correctly displayed in right-to-left languages like Arabic.
         draw = ImageDraw.Draw(img_pil)
-        print(bidi_text)
+        
         # bidi_text = bidi_text[::-1]
         # print(bidi_text)
-        draw.text((x, y - 32),bidi_text, font = font ,fill='red')
-        image = np.array(img_pil)
-
+        draw.text((x, y - 32),bidi_text, font = font ,fill='red')#draw the text on the image at the specified coordinates ((x, y - 32)) with the specified font (font) and color (fill='red').
+        image = np.array(img_pil)#convert the image object back to a numpy array of pixel values.
+        
 
         
 
@@ -91,19 +93,55 @@ def AI(frame):
         # display the license plate and the output image
         cv2.imshow('license plate', license_plate)
         cv2.imshow('Image', image)
+        return detection[0][1]
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
 #AI("A3.jpeg")
 
-vid = cv2.VideoCapture(0)
+#vid = cv2.VideoCapture(0)
 while(True):
-    ret, frame = vid.read()
-    AI(frame)
+    
+    #ret, frame = vid.read()
+    #AI(frame)
     #for testing
-    #frame = cv2.imread("A2.jpeg")
-    AI(frame)
-    if(cv2.waitKey(100) &0xFF == ord('q') ):
+    try:
+        frame = cv2.imread("D2.jpg") #[A3.jpeg,!A2.jpeg,D2.jpg,G2.jpg]
+    except:
         break
-
-vid.release()
+    text =  AI(frame,False)
+    if(not text):
+        text = AI(frame,True)
+    print(text)
+    arabic_nums = "٠١٢٣٤٥٦٧٨٩"
+    result_characters = ""
+    result_numbers = ""
+    if(text):
+        for i in range(len(text)):
+           
+            if text[i] in arabic_nums:
+                
+                result_characters = text[:i]
+                
+                result_numbers = text[i:]
+                break
+    temp = [x for x in result_characters if(x !=" ")]
+    result_characters = " ".join(temp)
+    result = result_characters + " " + result_numbers
+    print(result)
+    f = open("Number_plate.txt", 'w', encoding='utf-8')
+    
+    f.write(result)
+    
+    f.close()
+    cv2.waitKey(10000)
+    break
+        
+    
+    
+    
+    
+# frame = cv2.imread("B1.jpeg")
+# AI(frame)
+# cv2.waitKey(0)
+#vid.release()
 cv2.destroyAllWindows() 
